@@ -12,7 +12,7 @@
   "scripts": {
     "build": "tsc --outDir dist --target es2017",
     "build:watch": "tsc --outDir dist --target es2017 --watch",
-    "clean": "rm -rf dist",
+    "clean": "lb-clean dist",
     "lint": "npm run prettier:check && npm run tslint",
     "lint:fix": "npm run prettier:fix && npm run tslint:fix",
     "prettier:cli": "prettier \"**/*.ts\" \"**/*.js\"",
