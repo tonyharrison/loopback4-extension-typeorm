@@ -24,12 +24,8 @@ export function TypeORMMixin(
             Object.assign({name: key}, this.options.connections[key]),
           );
           if (connection) {
-            console.log(
-              `binding connectio to typeorm.connections.${key}`,
-              connection,
-            );
             this.bind(`typeorm.connections.${key}`).toDynamicValue(() => {
-              return this.typeOrmConnectionManager.get(`${key}`);
+              return this.getTypeOrmConnection(`${key}`);
             });
           }
         }
@@ -84,6 +80,7 @@ export function TypeORMMixin(
       // the constructor instance to be available in the provider scope, which
       // would require injection of each constructor, so I had to settle for
       // this instead.
+
       return this.bind(`repositories.${ctor.name}`).toDynamicValue(async () => {
         if (!connection.isConnected) {
           await connection.connect();
