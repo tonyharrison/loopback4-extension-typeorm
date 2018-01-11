@@ -1,6 +1,6 @@
 import {Application} from '@loopback/core';
 import {Binding, Constructor} from '@loopback/context';
-import {Connection, Entity, ConnectionOptions} from 'typeorm';
+import {Connection, Entity, ConnectionOptions, EntitySchema} from 'typeorm';
 import {TypeORMConnectionManager} from './connection-manager';
 
 // tslint:disable:no-any
@@ -39,8 +39,7 @@ export function TypeORMMixin(
         Array.isArray(this.options.repositories)
       ) {
         this.options.repositories.forEach(
-          (elm: {connection: string; entity: Constructor<any>}) => {
-            console.log(elm);
+          (elm: {connection: string; entity: any}) => {
             this.typeOrmRepository(
               this.getTypeOrmConnection(elm.connection),
               elm.entity,
