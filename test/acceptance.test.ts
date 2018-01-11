@@ -20,38 +20,6 @@ import * as util from 'util';
  * FIXTURES
  * ============================================================================
  */
-class TestApplication extends TypeORMMixin(Application) {
-  connectionOne: Connection;
-  connectionTwo: Connection;
-  constructor() {
-    super();
-    const fakeConnectionInfo: ConnectionOptions = {
-      host: process.env.MYSQL_HOST || 'localhost',
-      database: process.env.MYSQL_DATABASE || 'testdb',
-      port: Number.parseInt(process.env.MYSQL_PORT || '3306'),
-      type: 'mysql',
-      username: process.env.MYSQL_USERNAME || 'root',
-      password: process.env.MYSQL_PASSWORD || 'pass',
-      entities: [Customer, Order],
-      synchronize: true,
-    };
-    console.log(
-      `Connection Info: ${util.inspect(fakeConnectionInfo, undefined, 2)}`,
-    );
-    this.connectionOne = this.createTypeOrmConnection(
-      Object.assign({name: 'one'}, fakeConnectionInfo),
-    );
-    this.connectionTwo = this.createTypeOrmConnection(
-      Object.assign({name: 'two'}, fakeConnectionInfo),
-    );
-
-    this.typeOrmRepository(this.connectionOne, Order);
-    this.typeOrmRepository(this.connectionTwo, Customer);
-  }
-}
-
-class OptionsTestApplication extends TypeORMMixin(Application) {}
-
 @Entity()
 class Order {
   @PrimaryGeneratedColumn() id: number;
@@ -71,6 +39,40 @@ class Customer {
   @JoinTable()
   orders: Order[];
 }
+
+const fakeConnectionInfo: ConnectionOptions = {
+  host: process.env.MYSQL_HOST || 'localhost',
+  database: process.env.MYSQL_DATABASE || 'testdb',
+  port: Number.parseInt(process.env.MYSQL_PORT || '3306'),
+  type: 'mysql',
+  username: process.env.MYSQL_USERNAME || 'root',
+  password: process.env.MYSQL_PASSWORD || 'pass',
+  entities: [Customer, Order],
+  synchronize: true,
+};
+
+class TestApplication extends TypeORMMixin(Application) {
+  connectionOne: Connection;
+  connectionTwo: Connection;
+  constructor() {
+    super();
+
+    console.log(
+      `Connection Info: ${util.inspect(fakeConnectionInfo, undefined, 2)}`,
+    );
+    this.connectionOne = this.createTypeOrmConnection(
+      Object.assign({name: 'one'}, fakeConnectionInfo),
+    );
+    this.connectionTwo = this.createTypeOrmConnection(
+      Object.assign({name: 'two'}, fakeConnectionInfo),
+    );
+
+    this.typeOrmRepository(this.connectionOne, Order);
+    this.typeOrmRepository(this.connectionTwo, Customer);
+  }
+}
+
+class OptionsTestApplication extends TypeORMMixin(Application) {}
 
 /*
  * ============================================================================
@@ -132,28 +134,12 @@ describe('TypeORM Repository Mixin', () => {
 describe('TypeORM Repository Mixin - Options ctor', () => {
   const options = {
     connections: {
-      ds1: {
-        database: process.env.MYSQL_DATABASE || 'testdb',
-        port: Number.parseInt(process.env.MYSQL_PORT || '3306'),
-        type: 'mysql',
-        username: process.env.MYSQL_USERNAME || 'root',
-        password: process.env.MYSQL_PASSWORD || 'pass',
-        entities: [Order, Customer],
-        synchronize: true,
-      },
-      ds2: {
-        database: process.env.MYSQL_DATABASE || 'testdb',
-        port: Number.parseInt(process.env.MYSQL_PORT || '3306'),
-        type: 'mysql',
-        username: process.env.MYSQL_USERNAME || 'root',
-        password: process.env.MYSQL_PASSWORD || 'pass',
-        entities: [Order, Customer],
-        synchronize: true,
-      },
+      connectionOne: fakeConnectionInfo,
+      connectionTwo: fakeConnectionInfo,
     },
     repositories: [
-      {connection: 'ds1', entity: Order},
-      {connection: 'ds2', entity: Customer},
+      {connection: 'connectionOne', entity: Order},
+      {connection: 'connectionTwo', entity: Customer},
     ],
   };
 
@@ -164,12 +150,12 @@ describe('TypeORM Repository Mixin - Options ctor', () => {
   });
 
   it('creates connection bindings', async () => {
-    const ds1Connection = await app.get('typeorm.connections.ds1');
+    const ds1Connection = await app.get('typeorm.connections.connectionOne');
 
     expect(ds1Connection).to.be.instanceOf(Connection);
     expect(ds1Connection.isConnected).to.be.true();
 
-    const ds2Connection = await app.get('typeorm.connections.ds2');
+    const ds2Connection = await app.get('typeorm.connections.connectionTwo');
     expect(ds2Connection).to.be.instanceOf(Connection);
     expect(ds2Connection.isConnected).to.be.true();
   });
