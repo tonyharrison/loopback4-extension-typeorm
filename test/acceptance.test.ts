@@ -1,7 +1,7 @@
 import 'mocha';
 import {expect} from '@loopback/testlab';
 import {Application} from '@loopback/core';
-import {TypeORMMixin} from '../src/index';
+import {TypeORMMixin} from '../src';
 import {
   Repository,
   ConnectionOptions,
@@ -49,6 +49,8 @@ class TestApplication extends TypeORMMixin(Application) {
     this.typeOrmRepository(this.connectionTwo, Customer);
   }
 }
+
+class OptionsTestApplication extends TypeORMMixin(Application) {}
 
 @Entity()
 class Order {
@@ -127,6 +129,60 @@ describe('TypeORM Repository Mixin', () => {
   });
 });
 
+describe('TypeORM Repository Mixin - Options ctor', () => {
+  const options = {
+    connections: {
+      ds1: {
+        database: process.env.MYSQL_DATABASE || 'testdb',
+        port: Number.parseInt(process.env.MYSQL_PORT || '3306'),
+        type: 'mysql',
+        username: process.env.MYSQL_USERNAME || 'root',
+        password: process.env.MYSQL_PASSWORD || 'pass',
+        entities: [Order, Customer],
+        synchronize: true,
+      },
+      ds2: {
+        database: process.env.MYSQL_DATABASE || 'testdb',
+        port: Number.parseInt(process.env.MYSQL_PORT || '3306'),
+        type: 'mysql',
+        username: process.env.MYSQL_USERNAME || 'root',
+        password: process.env.MYSQL_PASSWORD || 'pass',
+        entities: [Order, Customer],
+        synchronize: true,
+      },
+    },
+    repositories: [
+      {connection: 'ds1', entity: Order},
+      {connection: 'ds2', entity: Customer},
+    ],
+  };
+
+  const app = new OptionsTestApplication(options);
+
+  before(async () => {
+    await app.start();
+  });
+
+  it('creates connection bindings', async () => {
+    const ds1Connection = await app.get('typeorm.connections.ds1');
+
+    expect(ds1Connection).to.be.instanceOf(Connection);
+    expect(ds1Connection.isConnected).to.be.true();
+
+    const ds2Connection = await app.get('typeorm.connections.ds2');
+    expect(ds2Connection).to.be.instanceOf(Connection);
+    expect(ds2Connection.isConnected).to.be.true();
+  });
+
+  it('creates repository bindings', async () => {
+    expect(await app.get(`repositories.Order`)).to.be.instanceof(Repository);
+    expect(await app.get(`repositories.Customer`)).to.be.instanceof(Repository);
+  });
+
+  after(async () => {
+    await app.stop();
+  });
+});
 function getCustomer(customer?: Partial<Customer>): Customer {
   const base = new Customer();
   base.id = 0;

@@ -1,6 +1,6 @@
-import {Application, Component, Server} from '@loopback/core';
-import {Context, Binding, Constructor} from '@loopback/context';
-import {Connection, Entity, BaseEntity, ConnectionOptions} from 'typeorm';
+import {Application} from '@loopback/core';
+import {Binding, Constructor} from '@loopback/context';
+import {Connection, Entity, ConnectionOptions} from 'typeorm';
 import {TypeORMConnectionManager} from './connection-manager';
 
 // tslint:disable:no-any
@@ -11,10 +11,43 @@ export function TypeORMMixin(
     typeOrmConnectionManager: TypeORMConnectionManager;
     constructor(...args: any[]) {
       super(...args);
+      if (!this.options) this.options = {};
+
       this.typeOrmConnectionManager = new TypeORMConnectionManager();
       this.bind('typeorm.connections.manager').to(
         this.typeOrmConnectionManager,
       );
+
+      if (this.options.connections) {
+        for (let key in this.options.connections) {
+          const connection = this.createTypeOrmConnection(
+            Object.assign({name: key}, this.options.connections[key]),
+          );
+          if (connection) {
+            console.log(
+              `binding connectio to typeorm.connections.${key}`,
+              connection,
+            );
+            this.bind(`typeorm.connections.${key}`).toDynamicValue(() => {
+              return this.typeOrmConnectionManager.get(`${key}`);
+            });
+          }
+        }
+      }
+      if (
+        this.options.repositories &&
+        Array.isArray(this.options.repositories)
+      ) {
+        this.options.repositories.forEach(
+          (elm: {connection: string; entity: Constructor<any>}) => {
+            console.log(elm);
+            this.typeOrmRepository(
+              this.getTypeOrmConnection(elm.connection),
+              elm.entity,
+            );
+          },
+        );
+      }
     }
 
     async start() {
